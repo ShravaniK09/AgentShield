@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentShield // THREAT_ANALYTICS — Hacker Graphs Module</title>
+<meta name="description" content="High-quality colourful hacker-vibe analytical graphs for AgentShield. Drop-in module for the 1-page agent dashboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   AGENTSHIELD // THREAT_ANALYTICS — hacker-vibe graph system
+   Drop-in: copy any <section class="tpanel"> into index.html
+   Palette: matrix-green / cyber-cyan / volt-purple / hot-magenta
+            alert-red / amber / toxic-yellow / ice-blue
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#030309;
+  --bg2:#07070f;
+  --panel:rgba(10,12,22,.86);
+  --panel2:rgba(14,17,30,.92);
+  --line:rgba(0,255,65,.14);
+  --line2:rgba(255,255,255,.07);
+  --grn:#00ff41; --cyn:#00e5ff; --pur:#a855f7; --mag:#ff2bd6;
+  --red:#ff3131; --amb:#ffb000; --ylw:#facc15; --blu:#3b82f6;
+  --txt:#e8ffe9; --mut:#8b93a7; --dim:#4a5168;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--mono);overflow-x:hidden;min-height:100vh}
+::selection{background:var(--grn);color:#000}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:#050508}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--grn),var(--cyn));border-radius:5px}
+
+/* ── matrix rain + grid + scanlines ── */
+#matrix{position:fixed;inset:0;z-index:0;opacity:.16;pointer-events:none}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 20%,#000 30%,transparent 100%)}
+.scanlines{position:fixed;inset:0;z-index:60;pointer-events:none;mix-blend-mode:overlay;opacity:.5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px)}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 120% 100% at 50% 0%,transparent 55%,rgba(0,0,0,.7) 100%)}
+.glow{position:fixed;border-radius:50%;filter:blur(130px);z-index:0;pointer-events:none}
+.glow--g{width:560px;height:560px;top:-180px;left:-120px;background:radial-gradient(circle,rgba(0,255,65,.09),transparent 70%)}
+.glow--c{width:520px;height:520px;top:30%;right:-160px;background:radial-gradient(circle,rgba(0,229,255,.09),transparent 70%)}
+.glow--m{width:480px;height:480px;bottom:-140px;left:32%;background:radial-gradient(circle,rgba(255,43,214,.07),transparent 70%)}
+
+/* ── shell ── */
+.wrap{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:0 22px 80px}
+/* top bar */
+.topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(3,3,9,.82);border-bottom:1px solid var(--line)}
+.topbar__in{max-width:1440px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em}
+.logo__box{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:18px;color:#000;font-weight:900;
+  background:linear-gradient(135deg,var(--grn),var(--cyn));box-shadow:0 0 22px rgba(0,255,65,.5)}
+.logo small{display:block;font-size:10px;color:var(--mut);font-weight:500;letter-spacing:.14em}
+.prompt{color:var(--grn);font-size:12.5px}
+.prompt b{color:var(--cyn)}
+.topbar__spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;
+  padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(0,255,65,.06);color:var(--grn)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 10px var(--grn);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.chip--cy{border-color:rgba(0,229,255,.25);background:rgba(0,229,255,.06);color:var(--cyn)}
+.clock{font-size:12px;color:var(--mut)}
+.clock b{color:var(--txt)}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;cursor:pointer;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:rgba(0,255,65,.07);color:var(--grn);transition:.25s}
+.btn:hover{background:var(--grn);color:#000;box-shadow:0 0 24px rgba(0,255,65,.55)}
+.btn--ghost{background:transparent;color:var(--mut);border-color:var(--line2)}
+.btn--ghost:hover{color:#000;background:var(--cyn);border-color:var(--cyn);box-shadow:0 0 24px rgba(0,229,255,.5)}
+.btn--mag{border-color:rgba(255,43,214,.35);color:var(--mag);background:rgba(255,43,214,.07)}
+.btn--mag:hover{background:var(--mag);color:#000;box-shadow:0 0 24px rgba(255,43,214,.55)}
+
+/* hero */
+.hero{padding:56px 0 8px;text-align:left}
+.hero__kicker{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;color:var(--grn);
+  border:1px solid var(--line);padding:7px 14px;border-radius:999px;background:rgba(0,255,65,.05);margin-bottom:18px}
+.hero__kicker .live{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 12px var(--red);animation:blink 1s infinite}
+h1{font-size:clamp(2rem,5.4vw,4.2rem);line-height:1.02;font-weight:800;letter-spacing:-.02em}
+h1 .g{background:linear-gradient(90deg,var(--grn),var(--cyn));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 60px rgba(0,255,65,.25)}
+h1 .m{background:linear-gradient(90deg,var(--mag),var(--pur),var(--cyn));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero__sub{margin-top:14px;max-width:860px;color:var(--mut);font-size:13.5px;line-height:1.75}
+.hero__sub code{color:var(--cyn);background:rgba(0,229,255,.08);padding:1px 7px;border-radius:5px;border:1px solid rgba(0,229,255,.18)}
+.hero__ctl{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+.seg button{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;padding:8px 16px;background:transparent;border:0;color:var(--mut);cursor:pointer}
+.seg button.on{background:rgba(0,255,65,.14);color:var(--grn)}
+.hint{font-size:11px;color:var(--dim)}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 8px}
+.kpi{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:.3s}
+.kpi:hover{transform:translateY(-3px);border-color:var(--kc,var(--grn));box-shadow:0 0 30px -6px var(--kc,var(--grn))}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--kc,var(--grn)),transparent)}
+.kpi__top{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.18em;color:var(--mut);margin-bottom:8px}
+.kpi__tag{padding:2px 8px;border-radius:5px;font-weight:800;border:1px solid}
+.kpi__val{font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--kc,var(--grn));text-shadow:0 0 26px currentColor}
+.kpi__val small{font-size:13px;color:var(--mut);text-shadow:none}
+.kpi__sub{font-size:11px;color:var(--mut);margin-top:2px}
+.kpi__delta{font-size:11px;font-weight:700;margin-top:6px}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:18px}
+.span8{grid-column:span 8}.span6{grid-column:span 6}.span4{grid-column:span 4}.span12{grid-column:span 12}.span7{grid-column:span 7}.span5{grid-column:span 5}
+
+/* terminal panel */
+.tpanel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:16px;overflow:hidden;position:relative;transition:border-color .3s, box-shadow .3s}
+.tpanel:hover{border-color:rgba(0,255,65,.3);box-shadow:0 0 40px -12px rgba(0,255,65,.35)}
+.tpanel--cy:hover{border-color:rgba(0,229,255,.35);box-shadow:0 0 40px -12px rgba(0,229,255,.4)}
+.tpanel--mag:hover{border-color:rgba(255,43,214,.35);box-shadow:0 0 40px -12px rgba(255,43,214,.4)}
+.tpanel--pur:hover{border-color:rgba(168,85,247,.4);box-shadow:0 0 40px -12px rgba(168,85,247,.45)}
+.tpanel--red:hover{border-color:rgba(255,49,49,.4);box-shadow:0 0 40px -12px rgba(255,49,49,.45)}
+.tpanel--amb:hover{border-color:rgba(255,176,0,.4);box-shadow:0 0 40px -12px rgba(255,176,0,.4)}
+.tbar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line2);background:rgba(255,255,255,.015)}
+.tbar__dots{display:flex;gap:6px}
+.tbar__dots i{width:10px;height:10px;border-radius:50%;display:block}
+.tbar__dots i:nth-child(1){background:#ff5f57}.tbar__dots i:nth-child(2){background:#febc2e}.tbar__dots i:nth-child(3){background:#28c840}
+.tbar__cmd{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbar__cmd b{color:var(--grn);font-weight:700}
+.tbar__right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tbadge{font-size:9.5px;font-weight:800;letter-spacing:.12em;padding:3px 9px;border-radius:6px;border:1px solid}
+.tb-grn{color:var(--grn);border-color:rgba(0,255,65,.3);background:rgba(0,255,65,.07)}
+.tb-cyn{color:var(--cyn);border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.07)}
+.tb-mag{color:var(--mag);border-color:rgba(255,43,214,.3);background:rgba(255,43,214,.07)}
+.tb-red{color:var(--red);border-color:rgba(255,49,49,.3);background:rgba(255,49,49,.07)}
+.tb-amb{color:var(--amb);border-color:rgba(255,176,0,.3);background:rgba(255,176,0,.07)}
+.tb-pur{color:var(--pur);border-color:rgba(168,85,247,.35);background:rgba(168,85,247,.09)}
+.xbtn{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.1em;background:transparent;border:1px solid var(--line2);color:var(--dim);border-radius:6px;padding:4px 9px;cursor:pointer}
+.xbtn:hover{color:#000;background:var(--grn);border-color:var(--grn)}
+.tbody{padding:18px}
+.tbody h3{font-size:13px;font-weight:800;letter-spacing:.14em;margin-bottom:2px}
+.tbody h3 .cur{animation:blink 1s infinite;color:var(--grn)}
+.tsub{font-size:11.5px;color:var(--mut);margin-bottom:14px}
+.tsub b{color:var(--txt)}
+.cwrap{position:relative;height:300px}
+.cwrap--sm{height:250px}.cwrap--xs{height:210px}.cwrap--tl{height:340px}
+canvas{max-width:100%}
+.tfoot{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line2);font-size:11px;color:var(--mut)}
+.tfoot b{color:var(--txt)}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;box-shadow:0 0 8px currentColor}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.frow{display:grid;grid-template-columns:150px 1fr 64px;gap:10px;align-items:center;font-size:11px}
+.frow__label{color:var(--mut);text-align:right;letter-spacing:.04em}
+.frow__label b{display:block;color:var(--txt);font-size:11.5px}
+.fbar{height:30px;border-radius:8px;position:relative;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid var(--line2)}
+.fbar i{position:absolute;inset:0;width:var(--w);border-radius:8px;background:linear-gradient(90deg,var(--c1),var(--c2));box-shadow:0 0 18px -2px var(--c1);display:flex;align-items:center;padding-left:12px;font-style:normal;font-size:10.5px;font-weight:800;color:#02020a;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.frow__n{font-weight:800;font-size:13px;text-align:right}
+.fconv{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:4px}
+.fconv b{color:var(--amb)}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.hcell{border-radius:10px;padding:10px 11px;border:1px solid var(--line2);background:rgba(255,255,255,.02);cursor:crosshair;transition:.25s;position:relative;overflow:hidden}
+.hcell:hover{transform:scale(1.04);z-index:2}
+.hcell__kw{font-size:10.5px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcell__bar{height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:6px}
+.hcell__bar i{display:block;height:100%;border-radius:4px}
+.hcell__meta{display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
+.hcell__meta b{font-size:12px}
+
+/* leaderboard */
+.lb{display:flex;flex-direction:column;gap:10px}
+.lbrow{display:grid;grid-template-columns:30px 1fr 76px;gap:10px;align-items:center;background:rgba(255,255,255,.018);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;transition:.25s;cursor:pointer}
+.lbrow:hover{border-color:var(--rc);transform:translateX(4px);box-shadow:0 0 22px -8px var(--rc)}
+.lbrow__rank{font-size:12px;font-weight:800;color:var(--dim)}
+.lbrow--top .lbrow__rank{color:var(--amb);text-shadow:0 0 12px var(--amb)}
+.lbrow__name{font-size:12px;font-weight:700}
+.lbrow__name small{display:block;font-weight:500;color:var(--mut);font-size:10.5px}
+.lbrow__bar{height:5px;border-radius:3px;background:rgba(255,255,255,.06);margin-top:6px;overflow:hidden}
+.lbrow__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--rc),transparent);border-radius:3px;box-shadow:0 0 10px var(--rc)}
+.lbrow__score{font-size:17px;font-weight:800;color:var(--rc);text-shadow:0 0 16px currentColor;text-align:right}
+.lbrow__score small{display:block;font-size:9px;color:var(--mut);letter-spacing:.1em;text-shadow:none}
+
+/* feed */
+.feed{background:#020204;border-top:1px solid var(--line2);border-radius:0 0 16px 16px;font-size:11.5px;line-height:1.9;max-height:300px;overflow-y:auto;padding:14px 18px}
+.feed::-webkit-scrollbar{width:6px}
+.feed div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:slidein .4s ease}
+@keyframes slidein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.f-t{color:var(--dim)}.f-ok{color:var(--grn)}.f-cy{color:var(--cyn)}.f-mg{color:var(--mag)}.f-rd{color:var(--red)}.f-am{color:var(--amb)}.f-pu{color:var(--pur)}
+.cursor{display:inline-block;width:8px;height:15px;background:var(--grn);vertical-align:-2px;animation:blink .9s infinite;box-shadow:0 0 8px var(--grn)}
+
+/* sys gauges */
+.sys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.gauge{background:rgba(255,255,255,.02);border:1px solid var(--line2);border-radius:10px;padding:10px 12px}
+.gauge__top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;color:var(--mut);margin-bottom:8px}
+.gauge__top b{font-size:13px}
+.gtrack{height:8px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
+.gtrack i{display:block;height:100%;border-radius:5px;transition:width 1s ease}
+
+/* atlas */
+.atlas{display:flex;flex-direction:column;gap:8px}
+.arow{display:grid;grid-template-columns:190px 1fr 44px;gap:10px;align-items:center;font-size:11px}
+.arow__t{color:var(--txt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow__t small{color:var(--dim);font-weight:400}
+.atrack{height:22px;background:rgba(255,255,255,.03);border:1px solid var(--line2);border-radius:7px;overflow:hidden;position:relative}
+.atrack i{display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-style:normal;font-size:10px;font-weight:800;color:#02020a;position:absolute;inset:0;width:var(--w);border-radius:7px}
+.arow__n{font-weight:800;text-align:right}
+
+/* integration note */
+.integrate{margin-top:20px;border:1px dashed rgba(0,255,65,.3);border-radius:14px;padding:18px 20px;background:rgba(0,255,65,.03);font-size:12px;line-height:1.8;color:var(--mut)}
+.integrate b{color:var(--grn)}.integrate code{color:var(--cyn);background:rgba(0,229,255,.08);padding:1px 7px;border-radius:5px}
+footer{margin-top:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+
+@media(max-width:1080px){.span8,.span6,.span4,.span7,.span5{grid-column:span 12}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.kpis{grid-template-columns:1fr}.frow{grid-template-columns:110px 1fr 52px}.arow{grid-template-columns:130px 1fr 38px}.sys{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="bg-grid"></div>
+<div class="glow glow--g"></div><div class="glow glow--c"></div><div class="glow glow--m"></div>
+<div class="scanlines"></div><div class="vignette"></div>
+
+<!-- ═══════ TOP BAR ═══════ -->
+<div class="topbar"><div class="topbar__in">
+  <div class="logo"><span class="logo__box">🛡</span><span>AGENTSHIELD<small>THREAT_ANALYTICS // v2.6</small></span></div>
+  <span class="prompt">root@agentshield:<b>~/intel$</b> ./render_graphs --live --neon</span>
+  <span class="topbar__spacer"></span>
+  <span class="chip"><span class="dot"></span>SYSTEM ACTIVE</span>
+  <span class="chip chip--cy" id="clock">--:--:--</span>
+  <button class="btn" onclick="toggleLive(this)">⏸ PAUSE LIVE</button>
+  <button class="btn btn--ghost" onclick="exportAll()">⬇ EXPORT ALL</button>
+</div></div>
+
+<div class="wrap">
+<!-- ═══════ HERO ═══════ -->
+<header class="hero">
+  <span class="hero__kicker"><span class="live"></span> LIVE THREAT INTELLIGENCE · 4 SOURCES · LLM-FILTERED</span>
+  <h1><span class="g">threat_analytics</span> <span class="m">.render()</span></h1>
+  <p class="hero__sub">High-density analytical layer for the <code>ai-sec-tracker</code> pipeline — <code>arxiv + nvd + github + rss → dedupe → score → llm_filter → discord</code>. Every panel below is a self-contained <code>&lt;section class="tpanel"&gt;</code>: copy-paste it straight into your 1-page agent dashboard landing. Neon-safe on pure black, Chart.js 4 powered, zero build step.</p>
+  <div class="hero__ctl">
+    <span class="seg" id="rangeSeg">
+      <button data-r="7">7D</button><button data-r="14" class="on">14D</button><button data-r="30">30D</button>
+    </span>
+    <span class="hint">// range switch re-seeds all time-series · live mode appends intel every 2.4s</span>
+  </div>
+</header>
+
+<!-- ═══════ KPI STRIP ═══════ -->
+<div class="kpis">
+  <div class="kpi" style="--kc:#00ff41"><div class="kpi__top">INTERCEPTED<span class="kpi__tag tb-grn" style="border:1px solid">+12.4%</span></div><div class="kpi__val"><span data-count="1284">0</span></div><div class="kpi__sub">findings scored ≥ threshold (14d)</div><div class="kpi__delta" style="color:var(--grn)">▲ +86 vs prior window</div></div>
+  <div class="kpi" style="--kc:#ff3131"><div class="kpi__top">CRITICAL VECTORS<span class="kpi__tag tb-red" style="border:1px solid">9 ACTIVE</span></div><div class="kpi__val"><span data-count="37">0</span> <small>/ 515 fetched</small></div><div class="kpi__sub">CVEs + prompt-injection chains</div><div class="kpi__delta" style="color:var(--red)">● 3 CRITICAL need triage</div></div>
+  <div class="kpi" style="--kc:#00e5ff"><div class="kpi__top">MTTD · PIPELINE<span class="kpi__tag tb-cyn" style="border:1px solid">-18%</span></div><div class="kpi__val"><span data-count="43">0</span><small> min</small></div><div class="kpi__sub">fetch → discord delivery</div><div class="kpi__delta" style="color:var(--cyn)">▼ faster after LLM rewrite</div></div>
+  <div class="kpi" style="--kc:#ff2bd6"><div class="kpi__top">FILTER PRECISION<span class="kpi__tag tb-mag" style="border:1px solid">GROQ LLM</span></div><div class="kpi__val"><span data-count="94">0</span><small>.2%</small></div><div class="kpi__sub">false-positive kill rate</div><div class="kpi__delta" style="color:var(--mag)">◆ 61 coincidental drops / run</div></div>
+</div>
+
+<!-- ═══════ GRAPH GRID ═══════ -->
+<div class="grid">
+
+  <!-- 1 · THREAT PULSE -->
+  <section class="tpanel span8" id="p-pulse">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> tail -f threat_pulse --stack-by-source --range=<span id="rangeLabel">14D</span></span>
+      <span class="tbar__right"><span class="tbadge tb-grn">NEON AREA ×4</span><button class="xbtn" onclick="dl('pulseChart','threat-pulse')">PNG ⬇</button></span></div>
+    <div class="tbody"><h3>[01] THREAT PULSE // VOLUME STREAM <span class="cur">█</span></h3>
+      <p class="tsub">Stacked findings per day split by <b>arXiv / NVD / GitHub / RSS</b>. Spikes = exploit drops or framework releases. Hover any layer for exact counts.</p>
+      <div class="cwrap cwrap--tl"><canvas id="pulseChart"></canvas></div>
+      <div class="tfoot">
+        <span class="lg"><i class="sw" style="color:#00e5ff;background:#00e5ff"></i> arXiv <b id="lgArxiv">—</b></span>
+        <span class="lg"><i class="sw" style="color:#ff3131;background:#ff3131"></i> NVD <b id="lgNvd">—</b></span>
+        <span class="lg"><i class="sw" style="color:#a855f7;background:#a855f7"></i> GitHub <b id="lgGh">—</b></span>
+        <span class="lg"><i class="sw" style="color:#00ff41;background:#00ff41"></i> RSS <b id="lgRss">—</b></span>
+        <span style="margin-left:auto">peak: <b style="color:var(--amb)" id="peakDay">—</b></span>
+      </div></div>
+  </section>
+
+  <!-- 2 · SEVERITY MATRIX -->
+  <section class="tpanel tpanel--red span4" id="p-sev">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> cvss_matrix --floor-boost</span>
+      <span class="tbar__right"><span class="tbadge tb-red">CVSS</span><button class="xbtn" onclick="dl('sevChart','severity')">PNG ⬇</button></span></div>
+    <div class="tbody"><h3>[02] SEVERITY MATRIX <span class="cur">█</span></h3>
+      <p class="tsub">CVE floor scores auto-pass the <b>threshold ≥ 3</b> gate (Crit 10 · High 7 · Med 4).</p>
+      <div class="cwrap cwrap--sm"><canvas id="sevChart"></canvas></div>
+      <div class="tfoot"><span>critical <b style="color:var(--red)">8</b></span><span>high <b style="color:var(--amb)">21</b></span><span>medium <b style="color:var(--ylw)">34</b></span><span>low <b>12</b></span><span style="margin-left:auto">pass-rate <b style="color:var(--grn)">94.7%</b></span></div></div>
+  </section>
+
+  <!-- 3 · ATTACK RADAR -->
+  <section class="tpanel tpanel--mag span4" id="p-radar">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> radar --vectors=8</span>
+      <span class="tbar__right"><span class="tbadge tb-mag">SPIDER ×8</span><button class="xbtn" onclick="dl('radarChart','vectors')">PNG ⬇</button></span></div>
+    <div class="tbody"><h3>[03] ATTACK-VECTOR RADAR <span class="cur">█</span></h3>
+      <p class="tsub">This run vs <b>30-day baseline</b>. Bulge = emerging TTP.</p>
+      <div class="cwrap cwrap--sm"><canvas id="radarChart"></canvas></div>
+      <div class="tfoot"><span>top vector <b style="color:var(--mag)">prompt-injection</b></span><span style="margin-left:auto">Δ baseline <b style="color:var(--red)">+22% tool-poisoning</b></span></div></div>
+  </section>
+
+  <!-- 4 · SOURCE THROUGHPUT -->
+  <section class="tpanel tpanel--cy span4" id="p-through">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> throughput --per-source --7d</span>
+      <span class="tbar__right"><span class="tbadge tb-cyn">GROUPED BAR</span><button class="xbtn" onclick="dl('thruChart','throughput')">PNG ⬇</button></span></div>
+    <div class="tbody"><h3>[04] SOURCE THROUGHPUT <span class="cur">█</span></h3>
+      <p class="tsub">Max items / run per fetcher: <b>arXiv 40 · NVD 200 · GH 75 · RSS 200</b>.</p>
+      <div class="cwrap cwrap--sm"><canvas id="thruChart"></canvas></div>
+      <div class="tfoot"><span>health <b style="color:var(--grn)">4/4 OK</b></span><span style="margin-left:auto">slowest <b style="color:var(--amb)">nvd 41s</b></span></div></div>
+  </section>
+
+  <!-- 5 · KILL-CHAIN FUNNEL -->
+  <section class="tpanel tpanel--amb span4" id="p-funnel">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> pipeline --funnel main.py</span>
+      <span class="tbar__right"><span class="tbadge tb-amb">6 STAGES</span></span></div>
+    <div class="tbody"><h3>[05] KILL-CHAIN FUNNEL <span class="cur">█</span></h3>
+      <p class="tsub">Where volume dies: <b>dedupe −58%</b> · keyword gate −71% · LLM −34%.</p>
+      <div class="funnel" id="funnel"></div>
+      <div class="fconv"><span>end-to-end yield <b>3.5%</b></span><span>posted <b>18 digests</b></span></div></div>
+  </section>
+
+  <!-- 6 · KEYWORD HEATMAP -->
+  <section class="tpanel tpanel--cy span12" id="p-heat">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> heatmap --keywords=32 --weights=config.py</span>
+      <span class="tbar__right"><span class="tbadge tb-cyn">32 SIGNALS</span><span class="tbadge tb-grn">AI-SEC</span><span class="tbadge tb-pur">FRAMEWORK</span><span class="tbadge tb-mag">ATTACK</span></span></div>
+    <div class="tbody"><h3>[06] KEYWORD SIGNAL HEATMAP // SCORING ENGINE <span class="cur">█</span></h3>
+      <p class="tsub">Cell glow = <b>weight × 7-day hit count</b>. Weights 1–6 from <b>config.py</b>; threshold line at <b>score ≥ 3</b>. Hover to see category.</p>
+      <div class="heat" id="heat"></div>
+      <div class="tfoot"><span>hottest <b style="color:var(--mag)">tool-poisoning ×41</b></span><span>noisiest <b style="color:var(--amb)">mcp ×88 (w6? no — w4)</b></span><span style="margin-left:auto">gate <b style="color:var(--grn)">MIN_SCORE = 3</b></span></div></div>
+  </section>
+
+  <!-- 7 · REPO LEADERBOARD -->
+  <section class="tpanel tpanel--pur span7" id="p-repos">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> rank --repos=15 --by=risk_score</span>
+      <span class="tbar__right"><span class="tbadge tb-pur">15 REPOS</span></span></div>
+    <div class="tbody"><h3>[07] REPO RISK LEADERBOARD <span class="cur">█</span></h3>
+      <p class="tsub">Risk = <b>0.5·advisories + 0.3·releases + 0.2·keyword hits</b> · 14 tracked + ATLAS feed.</p>
+      <div class="lb" id="leaders"></div></div>
+  </section>
+
+  <!-- 8 · ATLAS + LLM -->
+  <section class="tpanel span5" id="p-atlas">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> atlas_map + llm_audit</span>
+      <span class="tbar__right"><span class="tbadge tb-grn">ATLAS</span><button class="xbtn" onclick="dl('llmChart','llm')">PNG ⬇</button></span></div>
+    <div class="tbody"><h3>[08] MITRE ATLAS TACTICS + LLM FILTER <span class="cur">█</span></h3>
+      <p class="tsub">Findings mapped to <b>ATLAS tactics</b> (AML.Txxxx). LLM kills coincidental matches.</p>
+      <div class="atlas" id="atlas"></div>
+      <div style="height:170px;margin-top:14px"><canvas id="llmChart"></canvas></div>
+      <div class="tfoot"><span>llm precision <b style="color:var(--grn)">94.2%</b></span><span>rewrites <b style="color:var(--cyn)">112 one-liners</b></span><span style="margin-left:auto">model <b style="color:var(--mag)">groq / llama-3.3-70b</b></span></div></div>
+  </section>
+
+  <!-- 9 · LIVE TERMINAL -->
+  <section class="tpanel tpanel--cy span12" id="p-live">
+    <div class="tbar"><div class="tbar__dots"><i></i><i></i><i></i></div>
+      <span class="tbar__cmd"><b>~/intel$</b> watch -n 2 ./pipeline --stream --sysload</span>
+      <span class="tbar__right"><span class="tbadge tb-grn">● STREAMING</span><button class="xbtn" onclick="clearFeed()">CLEAR</button></span></div>
+    <div class="tbody"><h3>[09] LIVE INTEL STREAM // SYSLOAD <span class="cur">█</span></h3>
+      <p class="tsub">Simulated tail of <b>main.py</b> fetcher output + runner vitals. Pipe this panel above the fold of your landing for instant hacker credibility.</p>
+      <div class="sys">
+        <div class="gauge"><div class="gauge__top">FETCH LOAD <b id="gvCpu" style="color:var(--grn)">23%</b></div><div class="gtrack"><i id="gbCpu" style="width:23%;background:linear-gradient(90deg,#00ff41,#00e5ff);box-shadow:0 0 12px #00ff41"></i></div></div>
+        <div class="gauge"><div class="gauge__top">STATE 2000/2000 <b id="gvMem" style="color:var(--amb)">100%</b></div><div class="gtrack"><i id="gbMem" style="width:100%;background:linear-gradient(90deg,#ffb000,#ff3131);box-shadow:0 0 12px #ffb000"></i></div></div>
+        <div class="gauge"><div class="gauge__top">DISCORD PIPE <b id="gvNet" style="color:var(--cyn)">891 kb/s</b></div><div class="gtrack"><i id="gbNet" style="width:64%;background:linear-gradient(90deg,#00e5ff,#a855f7);box-shadow:0 0 12px #00e5ff"></i></div></div>
+      </div></div>
+    <div class="feed" id="feed"></div>
+  </section>
+
+</div><!-- /grid -->
+
+<div class="integrate">
+  <b>⌁ INTEGRATION →</b> each graph is one portable <code>&lt;section class="tpanel"&gt;…&lt;/section&gt;</code> + its <code>init*()</code> function at the bottom of this file.
+  To embed in <code>index.html</code>: ① copy the section markup, ② copy the matching JS block + keep the <code>Chart.js</code> CDN, ③ styles live in the <code>&lt;style&gt;</code> block — slice per-panel classes (<code>.tpanel .tbar .tfoot .heat .lb .atlas .feed</code>).
+  Data hooks are marked <code>// ← WIRE: replace with fetch('/api/...')</code> so you can swap simulated arrays for your real <code>state.json</code> / Actions summary feed.
+</div>
+
+<footer><span>AGENTSHIELD // THREAT_ANALYTICS — neon graph module · MIT</span><span id="footMeta">seed 0xAG3NT · rendered client-side · no backend required</span></footer>
+</div>
+
+<script>
+/* ═════════════ helpers ═════════════ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const R=(a,b)=>a+Math.random()*(b-a), RI=(a,b)=>Math.round(R(a,b));
+let RANGE=14, LIVE=true;
+Chart.defaults.font.family="'JetBrains Mono',monospace";
+Chart.defaults.color='rgba(232,255,233,.55)';
+const GRID='rgba(255,255,255,.055)', TICK={font:{size:9.5},color:'rgba(139,147,167,.9)'};
+const glow=(c,a=.55)=>{const g=$('#pulseChart');return c;};
+function dl(id,name){const c=document.getElementById(id);if(!c)return;const a=document.createElement('a');a.download=`agentshield-${name}.png`;a.href=c.toDataURL('image/png');a.click();}
+function exportAll(){['pulseChart','sevChart','radarChart','thruChart','llmChart'].forEach((id,i)=>setTimeout(()=>dl(id,id),i*350));}
+
+/* ═════════════ matrix rain ═════════════ */
+(()=>{const c=$('#matrix'),x=c.getContext('2d');let W,H,col,drops,chs='アイカツ01<>+*#$%&@ΞΔ01';
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight;col=Math.floor(W/16);drops=Array(col).fill(0).map(()=>R(0,H/16));}
+rs();addEventListener('resize',rs);
+setInterval(()=>{x.fillStyle='rgba(3,3,9,.14)';x.fillRect(0,0,W,H);x.font='13px monospace';
+for(let i=0;i<col;i++){const ch=chs[RI(0,chs.length-1)];x.fillStyle=Math.random()<.06?'#ff2bd6':Math.random()<.2?'#00e5ff':'#00ff41';
+x.fillText(ch,i*16,drops[i]*16);if(drops[i]*16>H&&Math.random()>.976)drops[i]=0;drops[i]++;}},66);})();
+
+/* ═════════════ clock + counters ═════════════ */
+setInterval(()=>{const d=new Date();$('#clock').textContent='◷ '+d.toTimeString().slice(0,8)+' UTC'+(d.getTimezoneOffset()==0?'':'('+(-d.getTimezoneOffset()/60)+')');},1000);
+$$('[data-count]').forEach(el=>{const t=+el.dataset.count,st=performance.now();
+(function s(n){const p=Math.min((n-st)/1600,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(e*t).toLocaleString();if(p<1)requestAnimationFrame(s);})(st);});
+
+/* ═════════════ DATA (← WIRE: replace with fetch state.json / API) ═════════════ */
+function pulseData(n){const L=Array.from({length:n},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(n-1-i));return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});});
+const spike=i=>(i===n-4?1.9:i===n-9?1.6:1);
+return{L,arxiv:L.map((_,i)=>Math.round(R(4,22)*spike(i))),nvd:L.map((_,i)=>Math.round(R(6,30)*spike(i))),gh:L.map((_,i)=>Math.round(R(3,14)*spike(i))),rss:L.map((_,i)=>Math.round(R(8,32)*spike(i)))};}
+let pulse= pulseData(RANGE);
+function sum(a){return a.reduce((x,y)=>x+y,0);}
+
+/* ═════════════ [01] THREAT PULSE ═════════════ */
+let pulseChart;
+function drawPulse(){pulse=pulseData(RANGE);
+  $('#rangeLabel').textContent=RANGE+'D';
+  $('#lgArxiv').textContent=sum(pulse.arxiv);$('#lgNvd').textContent=sum(pulse.nvd);
+  $('#lgGh').textContent=sum(pulse.gh);$('#lgRss').textContent=sum(pulse.rss);
+  const tot=pulse.L.map((_,i)=>pulse.arxiv[i]+pulse.nvd[i]+pulse.gh[i]+pulse.rss[i]);
+  $('#peakDay').textContent=pulse.L[tot.indexOf(Math.max(...tot))]+' ('+Math.max(...tot)+' findings)';
+  const mk=(data,c)=>{const cv=document.getElementById('pulseChart').getContext('2d');const g=cv.createLinearGradient(0,0,0,320);
+    g.addColorStop(0,c+'55');g.addColorStop(1,c+'05');return{data,bg:g,line:c};};
+  const A=mk(pulse.arxiv,'#00e5ff'),N=mk(pulse.nvd,'#ff3131'),G=mk(pulse.gh,'#a855f7'),S=mk(pulse.rss,'#00ff41');
+  if(pulseChart)pulseChart.destroy();
+  pulseChart=new Chart($('#pulseChart'),{type:'line',
+   data:{labels:pulse.L,datasets:[
+    {label:'arXiv',data:A.data,borderColor:A.line,backgroundColor:A.bg,fill:true,tension:.42,borderWidth:2,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:A.line},
+    {label:'NVD',data:N.data,borderColor:N.line,backgroundColor:N.bg,fill:true,tension:.42,borderWidth:2,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:N.line},
+    {label:'GitHub',data:G.data,borderColor:G.line,backgroundColor:G.bg,fill:true,tension:.42,borderWidth:2,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:G.line},
+    {label:'RSS',data:S.data,borderColor:S.line,backgroundColor:S.bg,fill:true,tension:.42,borderWidth:2,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:S.line}]},
+   options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{boxWidth:12,boxHeight:12,usePointStyle:true,font:{size:10}}},
+     tooltip:{backgroundColor:'rgba(2,2,8,.96)',borderColor:'rgba(0,255,65,.25)',borderWidth:1,padding:12,titleFont:{size:11,weight:'700'}}},
+    scales:{x:{grid:{color:GRID},ticks:TICK},y:{stacked:true,grid:{color:GRID},ticks:TICK,beginAtZero:true}},
+    animation:{duration:1100,easing:'easeOutQuart'}}});}
+drawPulse();
+$('#rangeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $$('#rangeSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');RANGE=+b.dataset.r;drawPulse();});
+
+/* ═════════════ [02] SEVERITY ═════════════ */
+new Chart($('#sevChart'),{type:'doughnut',
+ data:{labels:['CRITICAL','HIGH','MEDIUM','LOW'],datasets:[{data:[8,21,34,12],
+  backgroundColor:['rgba(255,49,49,.85)','rgba(255,176,0,.85)','rgba(250,204,21,.8)','rgba(0,255,65,.55)'],
+  borderColor:['#ff3131','#ffb000','#facc15','#00ff41'],borderWidth:2,hoverOffset:10}]},
+ options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+  plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true,font:{size:10},padding:14}},
+   tooltip:{backgroundColor:'rgba(2,2,8,.96)',borderColor:'rgba(255,49,49,.3)',borderWidth:1,padding:12,
+    callbacks:{label:c=>` ${c.label}: ${c.raw} CVEs · floor ${{CRITICAL:10,HIGH:7,MEDIUM:4,LOW:0}[c.label]}`}}},
+  animation:{animateRotate:true,duration:1400}}});
+
+/* ═════════════ [03] RADAR ═════════════ */
+new Chart($('#radarChart'),{type:'radar',
+ data:{labels:['prompt\ninjection','jailbreak','tool\npoison','RCE','data\n-exfil','sandbox\nescape','SSRF','priv-esc'],
+  datasets:[
+   {label:'THIS RUN',data:[92,74,81,58,47,63,39,44],borderColor:'#ff2bd6',backgroundColor:'rgba(255,43,214,.22)',borderWidth:2,pointBackgroundColor:'#ff2bd6',pointRadius:3},
+   {label:'30D BASELINE',data:[70,62,59,55,50,48,42,40],borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,.10)',borderWidth:1.5,borderDash:[5,4],pointBackgroundColor:'#00e5ff',pointRadius:2}]},
+ options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{boxWidth:12,usePointStyle:true,font:{size:10}}},tooltip:{backgroundColor:'rgba(2,2,8,.96)',padding:12}},
+  scales:{r:{min:0,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(255,43,214,.14)'},angleLines:{color:'rgba(255,255,255,.08)'},pointLabels:{color:'rgba(232,255,233,.75)',font:{size:9.5,weight:'600'}}}},
+  animation:{duration:1300}}});
+
+/* ═════════════ [04] THROUGHPUT ═════════════ */
+new Chart($('#thruChart'),{type:'bar',
+ data:{labels:['MON','TUE','WED','THU','FRI','SAT','SUN'],
+  datasets:[
+   {label:'arXiv',data:[22,18,31,14,26,9,12],backgroundColor:'rgba(0,229,255,.75)',borderColor:'#00e5ff',borderWidth:1,borderRadius:5},
+   {label:'NVD',data:[28,34,19,41,25,12,16],backgroundColor:'rgba(255,49,49,.75)',borderColor:'#ff3131',borderWidth:1,borderRadius:5},
+   {label:'GitHub',data:[12,9,14,11,16,5,8],backgroundColor:'rgba(168,85,247,.8)',borderColor:'#a855f7',borderWidth:1,borderRadius:5},
+   {label:'RSS',data:[30,26,33,29,35,18,22],backgroundColor:'rgba(0,255,65,.65)',borderColor:'#00ff41',borderWidth:1,borderRadius:5}]},
+ options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{boxWidth:10,usePointStyle:true,font:{size:10}}},tooltip:{backgroundColor:'rgba(2,2,8,.96)',padding:12}},
+  scales:{x:{grid:{display:false},ticks:TICK,stacked:false},y:{grid:{color:GRID},ticks:TICK,beginAtZero:true}},
+  animation:{duration:1100}}});
+
+/* ═════════════ [05] FUNNEL ═════════════ */
+const FUN=[['FETCH','515 raw pulls','#00e5ff','#a855f7',100,515],['DEDUPE','216 unique vs state','#a855f7','#ff2bd6',42,216],
+ ['SCORE ≥3','63 passed gate','#ff2bd6','#ff3131',12.2,63],['LLM FILTER','41 survive Groq','#ffb000','#ff3131',8,41],
+ ['POST','18 discord digests','#00ff41','#00e5ff',3.5,18]];
+$('#funnel').innerHTML=FUN.map(([t,s,c1,c2,w,n])=>`<div class="frow"><div class="frow__label"><b>${t}</b>${s}</div>
+ <div class="fbar"><i style="--w:${w}%;--c1:${c1};--c2:${c2};width:0" data-w="${w}">${w}%</i></div>
+ <div class="frow__n" style="color:${c1}">${n}</div></div>`).join('');
+requestAnimationFrame(()=>setTimeout(()=>$$('#funnel i').forEach(i=>i.style.width=i.dataset.w+'%'),300));
+
+/* ═════════════ [06] HEATMAP ═════════════ */
+const KW=[['tool poisoning',6,'attack',41],['indirect prompt injection',6,'ai',33],['agent security',6,'ai',29],['model context protocol',6,'ai',22],
+ ['prompt injection',5,'ai',64],['llm security',5,'ai',38],['rag poisoning',5,'ai',19],['jailbreak',4,'ai',47],
+ ['mcp',4,'ai',88],['langchain',4,'fw',52],['llamaindex',4,'fw',21],['autogen',4,'fw',18],['crewai',4,'fw',16],
+ ['semantic kernel',4,'fw',12],['sandbox escape',4,'attack',15],['ai agent',3,'ai',57],['data exfiltration',3,'ai',26],
+ ['guardrail',3,'ai',24],['agentic',3,'ai',31],['autonomous agent',3,'ai',17],['rce',3,'attack',35],
+ ['remote code execution',3,'attack',28],['adversarial',2,'ai',44],['llm',2,'ai',91],['red team',2,'ai',23],
+ ['openai',2,'fw',48],['anthropic',2,'fw',36],['claude',2,'fw',33],['ssrf',2,'attack',14],
+ ['privilege escalation',2,'attack',16],['alignment',1,'ai',20],['gpt-4',1,'fw',27]];
+const KWC={ai:['#00ff41','AI-SEC'],fw:['#00e5ff','FRAMEWORK'],attack:['#ff2bd6','ATTACK']};
+const maxHit=Math.max(...KW.map(k=>k[0].length?k[3]:0));
+$('#heat').innerHTML=KW.map(([kw,w,cat,hits])=>{const[c,label]=KWC[cat];const inten=(w/6)*.45+(hits/91)*.55;
+return `<div class="hcell" title="${kw} · weight ${w} · ${label} · ${hits} hits/7d" style="box-shadow:inset 0 0 24px -8px ${c};border-color:${c}44">
+<div class="hcell__kw" style="color:${c}">${kw}</div><div class="hcell__bar"><i style="width:${Math.round(inten*100)}%;background:linear-gradient(90deg,${c},${c}88);box-shadow:0 0 10px ${c}"></i></div>
+<div class="hcell__meta"><span>w${w} · ${hits} hits</span><b style="color:${c}">${'▮'.repeat(w)}${'▯'.repeat(6-w)}</b></div></div>`;}).join('');
+
+/* ═════════════ [07] LEADERBOARD ═════════════ */
+const REPOS=[['langchain','langchain-ai · framework',87,'#a855f7','12 adv · 8 rel'],['transformers','huggingface · infra',81,'#00e5ff','9 adv · 11 rel'],
+ ['openai-python','openai · provider',76,'#00ff41','4 adv · 14 rel'],['vllm','vllm-project · infra',69,'#ffb000','6 adv · 9 rel'],
+ ['servers','modelcontextprotocol · protocol',66,'#ff2bd6','7 adv · 6 rel'],['ollama','ollama · infra',58,'#3b82f6','3 adv · 10 rel'],
+ ['crewAI','crewAIInc · framework',54,'#a855f7','5 adv · 7 rel'],['semantic-kernel','microsoft · framework',49,'#00e5ff','4 adv · 6 rel'],
+ ['rebuff','protectai · security',47,'#ff3131','6 adv · 2 rel'],['autogen','microsoft · framework',43,'#facc15','2 adv · 8 rel']];
+$('#leaders').innerHTML=REPOS.map(([n,o,s,c,meta],i)=>`<div class="lbrow ${i<3?'lbrow--top':''}" style="--rc:${c}" onclick="window.open('https://github.com/search?q=${n}','_blank')">
+<div class="lbrow__rank">${String(i+1).padStart(2,'0')}</div>
+<div><div class="lbrow__name">${n} <small>${o} · ${meta}</small></div><div class="lbrow__bar"><i style="width:${s}%"></i></div></div>
+<div class="lbrow__score">${s}<small>RISK</small></div></div>`).join('');
+
+/* ═════════════ [08] ATLAS + LLM ═════════════ */
+const ATLAS=[['Reconnaissance','AML.T0000 · papers',74,'#00e5ff'],['Initial Access','AML.T0001 · prompt-inject',88,'#ff2bd6'],
+ ['ML Attack Staging','AML.T0010 · jailbreak',69,'#a855f7'],['Exfiltration','AML.T0024 · RCE/tools',52,'#ff3131'],
+ ['Impact','AML.T0034 · sandbox',41,'#ffb000']];
+$('#atlas').innerHTML=ATLAS.map(([t,s,v,c])=>`<div class="arow"><div class="arow__t">${t}<br><small>${s}</small></div>
+<div class="atrack"><i style="--w:${v}%;width:0;background:linear-gradient(90deg,${c},${c}99);box-shadow:0 0 14px -2px ${c}" data-w="${v}">${v}</i></div>
+<div class="arow__n" style="color:${c}">${v}</div></div>`).join('');
+setTimeout(()=>$$('#atlas i').forEach(i=>i.style.width=i.dataset.w+'%'),400);
+new Chart($('#llmChart'),{type:'bar',
+ data:{labels:['fetched','keyword pass','LLM kept','posted'],datasets:[{data:[216,63,41,18],
+  backgroundColor:['rgba(0,229,255,.5)','rgba(168,85,247,.6)','rgba(255,43,214,.65)','rgba(0,255,65,.7)'],
+  borderColor:['#00e5ff','#a855f7','#ff2bd6','#00ff41'],borderWidth:1.5,borderRadius:7}]},
+ options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(2,2,8,.96)',padding:10,callbacks:{label:c=>` ${c.raw} items`}},
+   title:{display:true,text:'LLM FILTER EFFICACY ▸ 34% cut, 94.2% precision',color:'rgba(232,255,233,.7)',font:{size:10,weight:'700'}}},
+  scales:{x:{grid:{color:GRID},ticks:TICK},y:{grid:{display:false},ticks:{color:'rgba(232,255,233,.8)',font:{size:10.5,weight:'600'}}}}}});
+
+/* ═════════════ [09] LIVE FEED ═════════════ */
+const feed=$('#feed');
+const SRC=[['arxiv','f-cy','arxiv_source.py'],['nvd','f-rd','nvd_source.py'],['github','f-pu','github_source.py'],['rss','f-ok','rss_source.py']];
+const MSG=['fetched {n} items','scored {n} ≥ threshold {t}','dedupe: {n} new / {u} unique','LLM: kept {n}, rewrote summaries','POST discord chunk {n}/2000 chars → 200 OK','state.json persisted ({n} ids)','CVE-{y}-{n} matched CPE + floor boost','release v{x} detected on tracked repo'];
+function ts(){return new Date().toTimeString().slice(0,8);}
+function line(){const[s,cls,f]=SRC[RI(0,3)];const m=MSG[RI(0,MSG.length)]
+ .replace('{n}',RI(2,48)).replace('{t}',3).replace('{u}',RI(60,220)).replace('{y}',RI(2023,2026)).replace('{x}',RI(1,9)+'.'+RI(0,9)+'.'+RI(0,9));
+ return `<div><span class="f-t">[${ts()}]</span> <span class="${cls}">[${s}]</span> <span class="f-t">${f} ::</span> ${m} <span class="f-ok">✓</span></div>`;}
+function clearFeed(){feed.innerHTML='';}
+for(let i=0;i<14;i++)feed.insertAdjacentHTML('beforeend',line());
+feed.insertAdjacentHTML('beforeend',`<div><span class="f-t">[${ts()}]</span> <span class="f-am">[sys]</span> awaiting next tick <span class="cursor"></span></div>`);
+setInterval(()=>{if(!LIVE)return;feed.insertAdjacentHTML('beforeend',line());
+ while(feed.children.length>60)feed.firstChild.remove();feed.scrollTop=feed.scrollHeight;
+ $('#gbCpu').style.width=RI(15,92)+'%';$('#gvCpu').textContent=$('#gbCpu').style.width;
+ $('#gbNet').style.width=RI(30,98)+'%';$('#gvNet').textContent=RI(200,1400)+' kb/s';},2400);
+function toggleLive(b){LIVE=!LIVE;b.textContent=LIVE?'⏸ PAUSE LIVE':'▶ RESUME LIVE';}
+$('#footMeta').textContent='seed 0xAG3NT · range '+RANGE+'D · rendered '+new Date().toISOString().slice(0,16)+'Z · no backend required';
+</script>
+</body>
+</html>

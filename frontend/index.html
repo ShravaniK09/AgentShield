@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentShield — AI Security Tracker Analytics</title>
+  <meta name="description" content="Premium analytics dashboard for the AI/Agent Security Tracker system. Visualize pipeline flow, keyword scoring, tracked repos, and threat intelligence sources.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- ═══════════ AMBIENT BACKGROUND ═══════════ -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--2" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--3" aria-hidden="true"></div>
+
+  <!-- ═══════════ NAVBAR ═══════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="container navbar__inner">
+      <a href="#" class="navbar__brand">
+        <span class="navbar__icon">🛡️</span>
+        <span class="navbar__title">AgentShield</span>
+      </a>
+      <div class="navbar__links">
+        <a href="#pipeline">Pipeline</a>
+        <a href="#sources">Sources</a>
+        <a href="#keywords">Keywords</a>
+        <a href="#repos">Repos</a>
+        <a href="#state">State</a>
+      </div>
+      <div class="navbar__status">
+        <span class="status-dot status-dot--live"></span>
+        <span class="status-text">System Active</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="hero" id="hero">
+    <div class="container hero__inner">
+      <div class="hero__badge fade-in">AI / Agent Security Intelligence</div>
+      <h1 class="hero__title fade-in">
+        <span class="hero__title-line">Agent</span>
+        <span class="hero__title-line hero__title-line--accent">Shield</span>
+      </h1>
+      <p class="hero__subtitle fade-in">Automated daily digest of CVEs, advisories, research papers, framework releases, and security blogs — powered by multi-source intelligence and LLM-driven filtering.</p>
+
+      <!-- STATS ROW -->
+      <div class="stats-row fade-in">
+        <div class="stat-card glass-card">
+          <div class="stat-card__icon">🔍</div>
+          <div class="stat-card__value" data-counter="2000">0</div>
+          <div class="stat-card__label">Tracked IDs</div>
+          <div class="stat-card__sub">State capacity at max</div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-card__icon">📡</div>
+          <div class="stat-card__value" data-counter="4">0</div>
+          <div class="stat-card__label">Data Sources</div>
+          <div class="stat-card__sub">arXiv · NVD · GitHub · RSS</div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-card__icon">📦</div>
+          <div class="stat-card__value" data-counter="14">0</div>
+          <div class="stat-card__label">Tracked Repos</div>
+          <div class="stat-card__sub">AI frameworks & tools</div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-card__icon">⏱️</div>
+          <div class="stat-card__value" id="last-run-display">—</div>
+          <div class="stat-card__label">Last Run</div>
+          <div class="stat-card__sub" id="last-run-relative">Scheduled 03:30 UTC daily</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ PIPELINE ═══════════ -->
+  <section class="section" id="pipeline">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">Pipeline Architecture</h2>
+        <p class="section-desc">Each run executes a 6-stage pipeline — from multi-source fetch to Discord delivery with intelligent deduplication and LLM-powered filtering.</p>
+      </div>
+
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-step glass-card" data-step="1">
+          <div class="pipeline-step__number">01</div>
+          <div class="pipeline-step__icon">📥</div>
+          <h3 class="pipeline-step__title">Fetch</h3>
+          <p class="pipeline-step__desc">Query all sources for items published in the last 2 days</p>
+          <code class="pipeline-step__file">sources/*.py</code>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">
+          <svg viewBox="0 0 40 20"><path d="M0 10 L30 10 M25 5 L32 10 L25 15" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+        <div class="pipeline-step glass-card" data-step="2">
+          <div class="pipeline-step__number">02</div>
+          <div class="pipeline-step__icon">🔄</div>
+          <h3 class="pipeline-step__title">Dedupe</h3>
+          <p class="pipeline-step__desc">Drop IDs already seen in state.json (SHA-1 hash based)</p>
+          <code class="pipeline-step__file">main.py</code>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">
+          <svg viewBox="0 0 40 20"><path d="M0 10 L30 10 M25 5 L32 10 L25 15" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+        <div class="pipeline-step glass-card" data-step="3">
+          <div class="pipeline-step__number">03</div>
+          <div class="pipeline-step__icon">⚡</div>
+          <h3 class="pipeline-step__title">Score</h3>
+          <p class="pipeline-step__desc">Keyword-score items against title + summary. Min threshold: 3</p>
+          <code class="pipeline-step__file">core.py</code>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">
+          <svg viewBox="0 0 40 20"><path d="M0 10 L30 10 M25 5 L32 10 L25 15" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+        <div class="pipeline-step glass-card" data-step="4">
+          <div class="pipeline-step__number">04</div>
+          <div class="pipeline-step__icon">🤖</div>
+          <h3 class="pipeline-step__title">LLM Filter</h3>
+          <p class="pipeline-step__desc">Groq LLM drops false positives, rewrites summaries to 1-liners</p>
+          <code class="pipeline-step__file">llm_filter.py</code>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">
+          <svg viewBox="0 0 40 20"><path d="M0 10 L30 10 M25 5 L32 10 L25 15" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+        <div class="pipeline-step glass-card" data-step="5">
+          <div class="pipeline-step__number">05</div>
+          <div class="pipeline-step__icon">💬</div>
+          <h3 class="pipeline-step__title">Post</h3>
+          <p class="pipeline-step__desc">Chunk messages under 2000-char limit and POST to Discord webhook</p>
+          <code class="pipeline-step__file">discord_notifier.py</code>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">
+          <svg viewBox="0 0 40 20"><path d="M0 10 L30 10 M25 5 L32 10 L25 15" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+        <div class="pipeline-step glass-card" data-step="6">
+          <div class="pipeline-step__number">06</div>
+          <div class="pipeline-step__icon">💾</div>
+          <h3 class="pipeline-step__title">Persist</h3>
+          <p class="pipeline-step__desc">Update state.json only on successful delivery (capped at 2000 IDs)</p>
+          <code class="pipeline-step__file">main.py</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SOURCES ═══════════ -->
+  <section class="section" id="sources">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">Intelligence Sources</h2>
+        <p class="section-desc">AgentShield aggregates threat intelligence from 4 distinct source categories, covering academic research to production CVEs.</p>
+      </div>
+
+      <div class="sources-grid fade-in">
+        <!-- Chart column -->
+        <div class="sources-chart-wrap glass-card">
+          <h3 class="card-title">Source Distribution</h3>
+          <div class="chart-container chart-container--donut">
+            <canvas id="sources-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Source cards column -->
+        <div class="sources-cards">
+          <div class="source-card glass-card" data-source="arxiv">
+            <div class="source-card__header">
+              <span class="source-card__icon">📄</span>
+              <h3 class="source-card__title">arXiv Papers</h3>
+              <span class="source-card__badge source-card__badge--papers">Papers</span>
+            </div>
+            <p class="source-card__desc">AI security research papers from cs.CR, cs.AI, cs.LG categories</p>
+            <div class="source-card__meta">
+              <span>3 categories</span>
+              <span>6 query terms</span>
+              <span>40 max results</span>
+            </div>
+          </div>
+
+          <div class="source-card glass-card" data-source="nvd">
+            <div class="source-card__header">
+              <span class="source-card__icon">🚨</span>
+              <h3 class="source-card__title">NVD CVEs</h3>
+              <span class="source-card__badge source-card__badge--cves">CVEs</span>
+            </div>
+            <p class="source-card__desc">CVE API 2.0 filtered for AI/ML product relevance via CPE matching</p>
+            <div class="source-card__meta">
+              <span>25 relevant terms</span>
+              <span>200 results/page</span>
+              <span>Severity-scored</span>
+            </div>
+          </div>
+
+          <div class="source-card glass-card" data-source="github">
+            <div class="source-card__header">
+              <span class="source-card__icon">🐙</span>
+              <h3 class="source-card__title">GitHub</h3>
+              <span class="source-card__badge source-card__badge--github">Advisories + Releases</span>
+            </div>
+            <p class="source-card__desc">Security advisories from pip/npm/go/rust ecosystems + tracked repo releases</p>
+            <div class="source-card__meta">
+              <span>14 tracked repos</span>
+              <span>4 ecosystems</span>
+              <span>Advisory + Release</span>
+            </div>
+          </div>
+
+          <div class="source-card glass-card" data-source="rss">
+            <div class="source-card__header">
+              <span class="source-card__icon">📡</span>
+              <h3 class="source-card__title">RSS Blogs</h3>
+              <span class="source-card__badge source-card__badge--blogs">Blogs</span>
+            </div>
+            <p class="source-card__desc">Curated security research blogs from top AI/ML security researchers</p>
+            <div class="source-card__meta">
+              <span>10 feeds</span>
+              <span>20 entries/feed</span>
+              <span>2-day lookback</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ KEYWORDS ═══════════ -->
+  <section class="section" id="keywords">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">Keyword Scoring Engine</h2>
+        <p class="section-desc">Items are scored against 32 weighted keywords. Minimum score threshold is <strong>3</strong>. CVEs get severity-based floor scores (Critical: 10, High: 7, Medium: 4).</p>
+      </div>
+
+      <div class="keywords-layout fade-in">
+        <div class="keywords-chart-wrap glass-card">
+          <h3 class="card-title">Weight Distribution</h3>
+          <div class="chart-container chart-container--bar">
+            <canvas id="keywords-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="keywords-legend glass-card">
+          <h3 class="card-title">Keyword Categories</h3>
+          <div class="legend-group">
+            <div class="legend-dot" style="--dot-color: var(--color-cyan)"></div>
+            <div>
+              <h4 class="legend-label">AI Security Terms</h4>
+              <p class="legend-desc">prompt injection, jailbreak, tool poisoning, rag poisoning, etc.</p>
+            </div>
+          </div>
+          <div class="legend-group">
+            <div class="legend-dot" style="--dot-color: var(--color-purple)"></div>
+            <div>
+              <h4 class="legend-label">Frameworks & Products</h4>
+              <p class="legend-desc">langchain, llamaindex, autogen, crewai, openai, anthropic, etc.</p>
+            </div>
+          </div>
+          <div class="legend-group">
+            <div class="legend-dot" style="--dot-color: var(--color-pink)"></div>
+            <div>
+              <h4 class="legend-label">Attack Classes</h4>
+              <p class="legend-desc">rce, remote code execution, ssrf, privilege escalation, sandbox escape</p>
+            </div>
+          </div>
+
+          <div class="severity-floor glass-card">
+            <h4 class="card-title">CVE Severity Floor</h4>
+            <div class="severity-bars">
+              <div class="severity-bar">
+                <span class="severity-label">🔴 CRITICAL</span>
+                <div class="severity-fill" style="--fill: 100%; --fill-color: #ef4444">10</div>
+              </div>
+              <div class="severity-bar">
+                <span class="severity-label">🟠 HIGH</span>
+                <div class="severity-fill" style="--fill: 70%; --fill-color: #f59e0b">7</div>
+              </div>
+              <div class="severity-bar">
+                <span class="severity-label">🟡 MEDIUM</span>
+                <div class="severity-fill" style="--fill: 40%; --fill-color: #eab308">4</div>
+              </div>
+              <div class="severity-bar">
+                <span class="severity-label">🟢 LOW</span>
+                <div class="severity-fill" style="--fill: 0%; --fill-color: #22c55e">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ TRACKED REPOS ═══════════ -->
+  <section class="section" id="repos">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">Tracked Repositories</h2>
+        <p class="section-desc">14 GitHub repositories monitored for new releases and security advisories. Grouped by ecosystem role.</p>
+      </div>
+
+      <div class="repos-grid fade-in" id="repos-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ RSS FEEDS ═══════════ -->
+  <section class="section" id="feeds">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">RSS Intelligence Feeds</h2>
+        <p class="section-desc">10 curated security research blogs monitored for AI/ML security content.</p>
+      </div>
+
+      <div class="feeds-grid fade-in" id="feeds-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ STATE & ARCHITECTURE ═══════════ -->
+  <section class="section" id="state">
+    <div class="container">
+      <div class="section-header fade-in">
+        <h2 class="section-title">State & Architecture</h2>
+        <p class="section-desc">Deduplication state management and module architecture of the AgentShield system.</p>
+      </div>
+
+      <div class="state-arch-grid fade-in">
+        <!-- State panel -->
+        <div class="state-panel glass-card">
+          <h3 class="card-title">Dedup State</h3>
+          <div class="gauge-wrap">
+            <canvas id="state-gauge"></canvas>
+            <div class="gauge-center">
+              <div class="gauge-value" data-counter="2000">0</div>
+              <div class="gauge-label">/ 2000 IDs</div>
+            </div>
+          </div>
+          <div class="state-meta">
+            <div class="state-meta__item">
+              <span class="state-meta__label">Capacity</span>
+              <span class="state-meta__value state-meta__value--warn">100% Full</span>
+            </div>
+            <div class="state-meta__item">
+              <span class="state-meta__label">Last Run</span>
+              <span class="state-meta__value" id="state-last-run">2026-09-12T08:03:26Z</span>
+            </div>
+            <div class="state-meta__item">
+              <span class="state-meta__label">Schedule</span>
+              <span class="state-meta__value">Daily 03:30 UTC</span>
+            </div>
+            <div class="state-meta__item">
+              <span class="state-meta__label">Storage</span>
+              <span class="state-meta__value">state.json (~50 KB)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture panel -->
+        <div class="arch-panel glass-card">
+          <h3 class="card-title">Module Architecture</h3>
+          <div class="arch-diagram" id="arch-diagram">
+            <!-- Module boxes rendered by JS -->
+          </div>
+          <div class="tech-stack">
+            <h4 class="card-title" style="margin-top: 1.5rem;">Tech Stack</h4>
+            <div class="badge-row">
+              <span class="tech-badge tech-badge--python">Python 3.11</span>
+              <span class="tech-badge tech-badge--actions">GitHub Actions</span>
+              <span class="tech-badge tech-badge--discord">Discord Webhooks</span>
+              <span class="tech-badge tech-badge--groq">Groq LLM</span>
+              <span class="tech-badge tech-badge--nvd">NVD API 2.0</span>
+              <span class="tech-badge tech-badge--arxiv">arXiv API</span>
+              <span class="tech-badge tech-badge--rss">RSS / Atom</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span>🛡️</span>
+        <span>AgentShield Analytics Dashboard</span>
+      </div>
+      <div class="footer__meta">
+        Built for <strong>AI / Agent Security Tracker</strong> · Data sourced from codebase analysis
+      </div>
+    </div>
+  </footer>
+
+  <script src="index.js"></script>
+</body>
+</html>
